@@ -7,23 +7,23 @@ ENV PYTHONUNBUFFERED 1
 
 RUN mkdir -p /code
 
-WORKDIR /code
+# WORKDIR /code
 
-RUN apt-get update && apt-get install -y \
-    curl \
-    && curl -sL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g yarn
+# RUN apt-get update && apt-get install -y \
+#     curl \
+#     && curl -sL https://deb.nodesource.com/setup_18.x | bash - \
+#     && apt-get install -y nodejs \
+#     && npm install -g yarn
 
-WORKDIR /code/frontend
+# WORKDIR /code/frontend
 
-COPY frontend/package.json frontend/yarn.lock ./
-COPY frontend/index.html ./
-COPY frontend/vite.config.js ./
+# COPY frontend/package.json frontend/yarn.lock ./
+# COPY frontend/index.html ./
+# COPY frontend/vite.config.js ./
 
 
-RUN yarn
-RUN yarn build
+# RUN yarn
+# RUN yarn build
 
 WORKDIR /code
 RUN pip install poetry
