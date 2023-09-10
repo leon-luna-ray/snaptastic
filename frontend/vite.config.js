@@ -7,6 +7,7 @@ export default defineConfig({
   build: {
     outDir: '../snaptastic/static/dist',
     rollupOptions: {
+      external: ['src/main.js'],
       output: {
         entryFileNames: 'index.js',
         assetFileNames: 'index.css',
