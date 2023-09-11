@@ -8,11 +8,12 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "devDependencies": {
-    "typescript": "^5.0.2",
-    "vite": "^4.4.5"
-  },
   "dependencies": {
-    "@builder.io/qwik": "^1.2.6"
+    "@vueuse/core": "^10.4.1",
+    "vue": "^3.3.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.2.3",
+    "vite": "^4.4.5"
   }
 }

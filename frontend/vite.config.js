@@ -1,16 +1,13 @@
 import { defineConfig } from 'vite';
-import { qwikVite } from '@builder.io/qwik/optimizer';
+import vue from '@vitejs/plugin-vue';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    qwikVite({
-      csr: true,
-    }),
-  ],
+  plugins: [vue()],
   build: {
     outDir: '../snaptastic/static/dist',
     rollupOptions: {
+      external: ['src/main.js'],
       output: {
         entryFileNames: 'index.js',
         assetFileNames: 'index.css',
