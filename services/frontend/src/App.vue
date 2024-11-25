@@ -1,14 +1,14 @@
 <template>
   <div id="vue-app">
     <h1 class="icons">Snaptastic</h1>
-    <video id="video" ref="videoRef" muted autoplay></video>
+    <!-- <video id="video" ref="videoRef" muted autoplay></video>
     <button @click="enabled = !enabled">
       {{ enabled ? 'Stop' : 'Start' }}
-    </button>
+    </button> -->
   </div>
 </template>
 
-<script setup>
+<!-- <script setup>
 import { watchEffect, ref, computed, onMounted } from 'vue';
 import { useDevicesList, useUserMedia } from '@vueuse/core'
 
@@ -43,4 +43,4 @@ onMounted(() => {
   flex-direction: column;
   row-gap: 1rem;
 }
-</style>
+</style> -->
