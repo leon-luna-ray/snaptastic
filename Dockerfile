@@ -38,7 +38,7 @@ COPY . /app
 
 # Copy the frontend build from the previous stage
 # COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
-
+# 
 # Expose the port the app runs on
 EXPOSE 8000
 
