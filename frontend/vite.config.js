@@ -5,7 +5,7 @@ import vue from '@vitejs/plugin-vue';
 export default defineConfig({
   plugins: [vue()],
   build: {
-    outDir: '../snaptastic/static/dist',
+    outDir: 'dist',
     rollupOptions: {
       external: ['src/main.js'],
       output: {

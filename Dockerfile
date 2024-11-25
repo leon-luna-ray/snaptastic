@@ -1,41 +1,23 @@
-ARG PYTHON_VERSION=3.10-slim-bullseye
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim
 
-FROM python:${PYTHON_VERSION}
+# Set the working directory in the container
+WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# Copy the pyproject.toml and poetry.lock files to the container
+COPY pyproject.toml poetry.lock /app/
 
-RUN mkdir -p /code
-
-# WORKDIR /code
-
-# RUN apt-get update && apt-get install -y \
-#     curl \
-#     && curl -sL https://deb.nodesource.com/setup_18.x | bash - \
-#     && apt-get install -y nodejs \
-#     && npm install -g yarn
-
-# WORKDIR /code/frontend
-
-# COPY frontend/package.json frontend/yarn.lock ./
-# COPY frontend/index.html ./
-# COPY frontend/vite.config.js ./
-
-
-# RUN yarn
-# RUN yarn build
-
-WORKDIR /code
+# Install Poetry
 RUN pip install poetry
-COPY pyproject.toml poetry.lock /code/
-RUN poetry config virtualenvs.create false
-RUN poetry install --only main --no-root --no-interaction
-COPY . /code
 
+# Install dependencies
+RUN poetry config virtualenvs.create false && poetry install --no-dev
 
+# Copy the rest of the application code to the container
+COPY . /app
 
-RUN python manage.py collectstatic --noinput
-
+# Expose the port the app runs on
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", ":8000", "--workers", "2", "snaptastic.wsgi"]
+# Command to run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
