@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  www:
+    image: snaptastic
+    build: .
+    container_name: snaptastic
+    volumes:
+      - ./snaptastic:/code/snaptastic
+      - ./apps:/code/apps
+      - ./.var/media:/srv/media
+    command: gunicorn -b 0.0.0.0:8080 -w 4 snaptastic.wsgi --reload
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
+
+  frontend:
+    build: ./frontend
+    volumes:
+      - './frontend:/app'
+      - '/app/node_modules'
+    ports:
+      - 5173:5173
+      
+  db:
+    image: postgres
+    container_name: snaptastic-db
+    environment:
+        POSTGRES_PASSWORD: root
+        POSTGRES_DB: snaptastic
+    volumes:
+      - db-data:/var/lib/postgresql/data 
+    ports:
+      - 5432:5432
+    env_file:
+      - .env
+
+volumes:
+  db-data:
+
+

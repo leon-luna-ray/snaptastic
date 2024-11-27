@@ -1,41 +1,24 @@
-ARG PYTHON_VERSION=3.10-slim-bullseye
+FROM python:3.12-slim-bullseye
 
-FROM python:${PYTHON_VERSION}
+RUN mkdir app
+WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PATH="${PATH}:/root/.local/bin"
+ENV PYTHONPATH=.
 
-RUN mkdir -p /code
-
-# WORKDIR /code
-
-# RUN apt-get update && apt-get install -y \
-#     curl \
-#     && curl -sL https://deb.nodesource.com/setup_18.x | bash - \
-#     && apt-get install -y nodejs \
-#     && npm install -g yarn
-
-# WORKDIR /code/frontend
-
-# COPY frontend/package.json frontend/yarn.lock ./
-# COPY frontend/index.html ./
-# COPY frontend/vite.config.js ./
-
-
-# RUN yarn
-# RUN yarn build
-
-WORKDIR /code
+# Install Poetry
+RUN pip install --upgrade pip
 RUN pip install poetry
-COPY pyproject.toml poetry.lock /code/
-RUN poetry config virtualenvs.create false
-RUN poetry install --only main --no-root --no-interaction
-COPY . /code
 
+# Copy only the necessary files for dependency installation
+COPY pyproject.toml poetry.lock ./
+COPY ./manage.py ./manage.py
+COPY ./README.md ./README.md
+COPY ./snaptastic/ ./snaptastic/
+COPY ./apps/ ./apps/
 
-
-RUN python manage.py collectstatic --noinput
-
-EXPOSE 8000
+RUN pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-dev --no-interaction --no-ansi
 
 CMD ["gunicorn", "--bind", ":8000", "--workers", "2", "snaptastic.wsgi"]
