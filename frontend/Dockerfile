@@ -5,10 +5,10 @@ WORKDIR /app
 ENV PATH /app/node_modules/.bin:$PATH
 
 # Install pnpm
-RUN npm install -g pnpm
+# RUN npm install -g pnpm
 
 COPY package.json .
-COPY pnpm-lock.yaml .
-RUN pnpm install
+COPY package-lock.json .
+RUN npm install
 
 CMD ["npm", "run", "dev"]
