@@ -1,9 +1,5 @@
 <template>
     <div>
-        <Camera />
+        <h1>Snaptastic</h1>
     </div>
 </template>
-
-<script setup>
-import Camera from '@/components/Camera.vue'
-</script>
