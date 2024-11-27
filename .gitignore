@@ -29,3 +29,5 @@ db.sqlite3
 staticfiles
 
 dist
+
+node_nodules

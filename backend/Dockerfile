@@ -11,7 +11,6 @@ RUN pip install poetry
 
 COPY pyproject.toml poetry.lock ./
 COPY ./manage.py ./manage.py
-COPY ./README.md ./README.md
 COPY ./snaptastic/ ./snaptastic/
 COPY ./apps/ ./apps/
 
