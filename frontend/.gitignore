@@ -27,5 +27,7 @@ dist-ssr
 
 db.sqlite3
 staticfiles
-poetry.lock
+
 dist
+
+.pnpm-store
