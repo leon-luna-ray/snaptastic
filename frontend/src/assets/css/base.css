@@ -1,0 +1,35 @@
+@tailwind base;
+
+@layer base {
+  body {
+    @apply dark:bg-gray-800 dark:text-gray-200;
+  }
+
+  a { 
+    @apply hover:underline;
+  }
+
+  h1,
+  .h1 {
+    @apply text-[4rem] font-bold;
+  }
+
+  h2,
+  .h2 {
+    @apply text-[3rem] font-bold;
+  }
+
+  h3,
+  .h3 {
+    @apply text-[2rem] font-bold;
+  }
+
+  h4,
+  .h4 {
+    @apply text-[1rem] font-bold;
+  }
+
+  input {
+    @apply px-0;
+  }
+}
