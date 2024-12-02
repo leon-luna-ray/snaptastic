@@ -28,7 +28,7 @@ export const useUserStore = defineStore('user', () => {
 
     try {
       const response = await axios.post(
-        `${BASE_API_URL}/users/login/`,
+        `${BASE_API_URL}/user/login/`,
         credentials
       );
       const { token, user: userData } = response.data;
@@ -65,7 +65,7 @@ export const useUserStore = defineStore('user', () => {
         return;
       }
 
-      const response = await axios.post(`${BASE_API_URL}/users/signup/`, {
+      const response = await axios.post(`${BASE_API_URL}/user/signup/`, {
         email: formData.email,
         password: formData.password,
       });
