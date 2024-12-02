@@ -1,46 +1,11 @@
 <template>
-  <div id="vue-app">
-    <h1 class="icons text-white text-center py-[4rem]">Snaptastic</h1>
-    <video id="video" ref="videoRef" muted autoplay></video>
-    <button @click="enabled = !enabled">
-      {{ enabled ? 'Stop' : 'Start' }}
-    </button>
-  </div>
+  <!-- <Header /> -->
+  <RouterView />
+  <!-- <Footer /> -->
 </template>
-
 <script setup>
-import { watchEffect, ref, computed, onMounted } from 'vue';
-import { useDevicesList, useUserMedia } from '@vueuse/core'
+import { RouterView } from 'vue-router';
 
-const {
-  videoInputs: cameras,
-} = useDevicesList({
-  requestPermissions: true,
-})
-
-const videoRef = ref(null);
-
-const currentCamera = computed(() => cameras.value[0]?.deviceId)
-
-const { stream, enabled } = useUserMedia({
-  constraints: {
-    video: { deviceId: currentCamera },
-  }
-})
-
-onMounted(() => {
-  watchEffect(() => {
-    if (videoRef.value && stream.value && stream.value.active) {
-      videoRef.value.srcObject = stream.value;
-    }
-  })
-})
+// import Header from './components/Header.vue';
+// import Footer from './components/Footer.vue';
 </script>
-
-<style>
-#vue-app {
-  display: flex;
-  flex-direction: column;
-  row-gap: 1rem;
-}
-</style>
