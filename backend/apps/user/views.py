@@ -36,10 +36,9 @@ def login(request):
 @api_view(["POST"])
 def signup(request):
     serializer = UserSerializer(data=request.data)
-    print('🍒 in serializer')
     if serializer.is_valid():
-        print('🍒 in serializer is valid')
-        serializer.save()
+        # This is where it trips up
+        # serializer.save()
         user = serializer.instance
         user.set_password(request.data["password"])
         user.save()
