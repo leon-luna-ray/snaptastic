@@ -32,6 +32,7 @@ def login(request):
         )
 
 
+# /user/signup
 @api_view(["POST"])
 def signup(request):
     serializer = UserSerializer(data=request.data)
