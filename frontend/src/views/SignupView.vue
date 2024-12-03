@@ -2,7 +2,7 @@
     <div id="signup" class="flex justify-center items-center">
         <div class="flex flex-col gap-y-[2rem] bg-blue-400 px-[6rem] py-[4rem] rounded-md">
             <h1>Sign Up</h1>
-            <form @submit.prevent="userStore.signup(formData)" class="flex-col-1">
+            <form @submit.prevent="e => handleSubmit(e)" class="flex-col-1">
                 <div class="flex-col-half">
                     <label for="email">Email:</label>
                     <input type="email" id="email" v-model="formData.email" />
@@ -15,7 +15,8 @@
                     <label for="confirmPassword">Confirm Password:</label>
                     <input type="password" id="confirmPassword" v-model="formData.confirmPassword" />
                 </div>
-                <button :class="['mt-[1rem] py-[0.5rem] hover:bg-blue-100/40 border rounded-md', loadingClass]" :disabled="isLoading" type="submit">{{ buttonText }}</button>
+                <button :class="['mt-[1rem] py-[0.5rem] hover:bg-blue-100/40 border rounded-md', loadingClass]"
+                    :disabled="isLoading" type="submit">{{ buttonText }}</button>
             </form>
         </div>
     </div>
@@ -24,7 +25,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useUserStore } from '../stores/user'
+import { useUserStore } from '@/stores/user'
 
 // Store
 const userStore = useUserStore();
@@ -38,12 +39,34 @@ const formData = ref({
     confirmPassword: '',
 });
 
-// Computed
 const buttonText = computed(() => {
     return isLoading.value ? 'Loading...' : 'Sign Up';
 })
 const loadingClass = computed(() => ({
     'hover:cursor-not-allowed bg-gray-400': isLoading.value,
 }))
-</script>
 
+const setFormData = (newData) => {
+    formData.value = {
+        ...formData.value,
+        ...newData,
+    };
+}
+const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (formData.password !== formData.confirmPassword) {
+        alert('Passwords do not match');
+
+        setFormData({
+            ...formData,
+            password: '',
+            confirmPassword: '',
+        });
+
+        return;
+    }
+
+    await userStore.signup(formData.value);
+}
+</script>

@@ -1,4 +1,5 @@
-import '@/assets/css/main.css'
+import '@/assets/css/main.css';
+import '@/utils/axiosConfig'
 
 import { createApp } from 'vue';
 import { createPinia } from "pinia";

@@ -1,85 +1,100 @@
-import { computed, ref } from 'vue';
-import { defineStore } from 'pinia';
-import { useRouter } from 'vue-router';
 import axios from 'axios';
 
-const BASE_API_URL = import.meta.env.VITE_BASE_API_URL;
+import { computed, ref, onMounted } from 'vue';
+import { defineStore } from 'pinia';
+import { useRouter } from 'vue-router';
 
 export const useUserStore = defineStore('user', () => {
   const router = useRouter();
 
   // State
   const isLoading = ref(false);
-  const user = ref(JSON.parse(localStorage.getItem('user')) || null);
+  const user = ref(null);
+  // const token = ref(null);
 
   // Computed
-  const isAuthenticated = computed(() => {
-    return !!localStorage.getItem('token');
-  });
-
-  // Setters
-  const setIsLoading = (value) => {
-    isLoading.value = value;
-  };
+  const isAuthenticated = computed(() => !!user.value);
 
   // Methods
-  const login = async (credentials) => {
-    setIsLoading(true);
-
-    try {
-      const response = await axios.post(
-        `${BASE_API_URL}/user/login/`,
-        credentials
-      );
-      const { token, user: userData } = response.data;
-
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-
-      user.value = userData;
-
-      setIsLoading(false);
-      router.push({ name: 'Dashboard' });
-    } catch (error) {
-      console.error('Login failed:', error);
-
-      setIsLoading(false);
+  const setUser = (user) => {
+    user.value = user;
+  }
+  const setSession = (token, user) => {
+    if (token) {
+      sessionStorage.setItem('token', token);
+    } else {
+      sessionStorage.removeItem('token');
     }
+    // setToken(token);
+    setUser(user);
   };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-
-    user.value = null;
-
-    router.push({ name: 'Login' });
-  };
-
-  const signup = async (formData) => {
-    setIsLoading(true);
-
+  const login = async (email, password) => {
     try {
-      if (formData.password !== formData.confirmPassword) {
-        console.error('Passwords do not match');
+      const response = await axios.post('/user/login/', { email, password });
+      
+      if (response.status !== 200) {
+        alert('Invalid email or password');
         return;
       }
 
-      const response = await axios.post(`${BASE_API_URL}/user/signup/`, {
-        email: formData.email,
-        password: formData.password,
-      });
+      const { token, user } = response.data;
 
-      if (response) {
-        setIsLoading(false);
-        window.alert('Signup successful! Click OK to go to the login page.');
-        router.push({ name: 'Login' });
+      if (token) {
+        setSession(token, user);
+        router.push('/dashboard');
       }
     } catch (error) {
-      console.error('Sign Up failed:', error);
-      setIsLoading(false);
+      console.error('Error logging in:', error);
     }
   };
+  const logout = async () => {
+    const response = await axios.post('/user/logout/');
+
+    if (response.status === 200) {
+      setSession(null, null);
+      router.push('/login');
+    }
+  };
+
+  const signup = async (data) => {
+    try {
+      console.log('try', data.email, data.password);
+      const response = await axios.post('/user/signup/', data);
+      console.log('Signup response:', response.data);
+      if (response.data.user.id) {
+        alert('Sign up successful. Please log in');
+        router.push('/login');
+      }
+    } catch (error) {
+      alert(`Error - ${error.response?.data?.email[0]}` || 'An error occurred. Unable to sign up');
+    }
+  };
+  const fetchUserData = async (token) => {
+    try {
+      const response = await axios.get('/user/whoami/');
+
+      if (response.status === 200) {
+        setSession(token);
+        setUser(response.data);
+      }
+
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      setSession(null, null);
+    }
+  };
+  const verifyStoredToken = async () => {
+    const storedToken = sessionStorage.getItem('token');
+    if (storedToken) {
+      console.log('Stored token found:', storedToken);
+      fetchUserData(storedToken);
+    }
+  };
+
+  // Lifecycle hooks  
+  onMounted(() => {
+    verifyStoredToken();
+  });
 
   return {
     isAuthenticated,
