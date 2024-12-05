@@ -16,21 +16,17 @@ export const useUserStore = defineStore('user', () => {
   const isAuthenticated = computed(() => !!user.value);
 
   // Methods
-  const setUser = (user) => {
-    user.value = user;
-  }
   const setSession = (token, user) => {
     if (token) {
       sessionStorage.setItem('token', token);
+      user.value = user;
     } else {
       sessionStorage.removeItem('token');
+      // user.value = null;
     }
-    // setToken(token);
-    setUser(user);
   };
   const login = async (data) => {
     try {
-      console.log('try', email, password);
       const response = await axios.post('/user/login/', data);
       console.log('response', response);
       if (response.status !== 200) {
@@ -75,8 +71,7 @@ export const useUserStore = defineStore('user', () => {
       const response = await axios.get('/user/whoami/');
       console.log('response', response);
       if (response.status === 200) {
-        setSession(token);
-        setUser(response.data);
+        setSession(token, response.data);
       }
 
     } catch (error) {
