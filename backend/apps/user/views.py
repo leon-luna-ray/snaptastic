@@ -14,7 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from .serializers import UserSerializer
 
-
+# /user/login
 @api_view(["POST"])
 def login(request):
     email = request.data.get("email")
@@ -29,6 +29,22 @@ def login(request):
     else:
         return Response(
             {"detail": "Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+# /user/logout
+@api_view(["POST"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    try:
+        token = Token.objects.get(user=request.user)
+        token.delete()
+        return Response(
+            {"detail": "Successfully logged out."}, status=status.HTTP_200_OK
+        )
+    except Token.DoesNotExist:
+        return Response(
+            {"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST
         )
 
 
@@ -46,6 +62,15 @@ def signup(request):
         return Response({"token": token.key, "user": serializer.data})
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# /users/whoami
+@api_view(["GET"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_current_user(request):
+    user = request.user
+    serializer = UserSerializer(user)
+    return Response(serializer.data)
 
 
 @api_view(["GET"])

@@ -73,7 +73,7 @@ export const useUserStore = defineStore('user', () => {
   const fetchUserData = async (token) => {
     try {
       const response = await axios.get('/user/whoami/');
-
+      console.log('response', response);
       if (response.status === 200) {
         setSession(token);
         setUser(response.data);
