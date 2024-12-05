@@ -28,10 +28,11 @@ export const useUserStore = defineStore('user', () => {
     // setToken(token);
     setUser(user);
   };
-  const login = async (email, password) => {
+  const login = async (data) => {
     try {
-      const response = await axios.post('/user/login/', { email, password });
-      
+      console.log('try', email, password);
+      const response = await axios.post('/user/login/', data);
+      console.log('response', response);
       if (response.status !== 200) {
         alert('Invalid email or password');
         return;
@@ -60,7 +61,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       console.log('try', data.email, data.password);
       const response = await axios.post('/user/signup/', data);
-      console.log('Signup response:', response.data);
+
       if (response.data.user.id) {
         alert('Sign up successful. Please log in');
         router.push('/login');
