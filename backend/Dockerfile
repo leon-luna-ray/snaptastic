@@ -18,4 +18,6 @@ RUN pip install poetry && \
     poetry config virtualenvs.create false && \
     poetry install --no-dev --no-interaction --no-ansi
 
+EXPOSE 8080
+
 CMD ["gunicorn", "--bind", ":8000", "--workers", "2", "snaptastic.wsgi"]

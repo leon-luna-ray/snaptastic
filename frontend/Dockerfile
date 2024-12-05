@@ -12,4 +12,6 @@ COPY pnpm-lock.yaml .
 
 RUN pnpm install
 
+# EXPOSE 5173
+
 CMD ["pnpm", "run", "dev"]
