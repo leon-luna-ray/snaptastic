@@ -1,4 +1,5 @@
-from django.contrib.auth import authenticate, get_user_model
+from django.shortcuts import render
+from django.contrib.auth import authenticate
 
 from rest_framework import status
 from rest_framework.decorators import (
@@ -13,7 +14,6 @@ from rest_framework.permissions import IsAuthenticated
 
 from .serializers import UserSerializer
 
-User = get_user_model()
 
 @api_view(["POST"])
 def login(request):
@@ -37,11 +37,12 @@ def login(request):
 def signup(request):
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
-        user = User.objects.create_user(
-            email=serializer.validated_data['email'],
-            password=request.data['password']
-        )
+        serializer.save()
+        user = serializer.instance
+        user.set_password(request.data["password"])
+        user.save()
         token, created = Token.objects.get_or_create(user=user)
+
         return Response({"token": token.key, "user": serializer.data})
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
