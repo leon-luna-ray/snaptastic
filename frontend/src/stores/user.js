@@ -22,7 +22,7 @@ export const useUserStore = defineStore('user', () => {
       user.value = user;
     } else {
       sessionStorage.removeItem('token');
-      // user.value = null;
+      user.value = null;
     }
   };
   const login = async (data) => {
@@ -69,9 +69,9 @@ export const useUserStore = defineStore('user', () => {
   const fetchUserData = async (token) => {
     try {
       const response = await axios.get('/user/whoami/');
-      console.log('response', response);
       if (response.status === 200) {
-        setSession(token, response.data);
+        console.log('User data:', response.data);
+        user.value = response.data;
       }
 
     } catch (error) {
