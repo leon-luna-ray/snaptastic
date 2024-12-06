@@ -10,12 +10,10 @@ export const useUserStore = defineStore('user', () => {
   // State
   const isLoading = ref(false);
   const user = ref(null);
-  // const token = ref(null);
-
-  // Computed
+  
   const isAuthenticated = computed(() => !!user.value);
 
-  // Methods
+  // Auth methods
   const setSession = (token, user) => {
     if (token) {
       sessionStorage.setItem('token', token);
@@ -25,6 +23,16 @@ export const useUserStore = defineStore('user', () => {
       user.value = null;
     }
   };
+  const verifySession = async () => {
+    const storedToken = sessionStorage.getItem('token');
+
+    if (storedToken) {
+      console.log('Stored token found:', storedToken);
+      fetchUserData(storedToken);
+    }
+  };
+
+  // Request methods
   const login = async (data) => {
     try {
       const response = await axios.post('/user/login/', data);
@@ -73,23 +81,15 @@ export const useUserStore = defineStore('user', () => {
         console.log('User data:', response.data);
         user.value = response.data;
       }
-
     } catch (error) {
       console.error('Error fetching user data:', error);
       setSession(null, null);
     }
   };
-  const verifyStoredToken = async () => {
-    const storedToken = sessionStorage.getItem('token');
-    if (storedToken) {
-      console.log('Stored token found:', storedToken);
-      fetchUserData(storedToken);
-    }
-  };
 
   // Lifecycle hooks  
   onMounted(() => {
-    verifyStoredToken();
+    verifySession();
   });
 
   return {
