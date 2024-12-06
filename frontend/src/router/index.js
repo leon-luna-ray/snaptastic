@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
-
+import { storeToRefs } from 'pinia';
+import { useUserStore } from '@/stores/user';
 const routes = [
   {
     path: '/',
@@ -20,6 +21,7 @@ const routes = [
     path: '/dashboard',
     component: () => import('@/views/DashboardView.vue'),
     name: 'Dashboard',
+    meta: { requiresAuth: true },
   },
 ];
 
@@ -28,21 +30,21 @@ const router = createRouter({
   routes,
 });
 
-// Todo check before route enter for auth req routes
-router.beforeEach((to, from, next) => {
-  if (to.matched.some((record) => record.meta.requiresAuth)) {
-    // Check if the user is authenticated
-    if (!!!localStorage.getItem('token')) {
-      // User is not authenticated, redirect to the login page or show an error message
+// todo fix route guard
+router.beforeEach(async (to, from, next) => {
+  const userStore = useUserStore();
+  const { storedToken } = storeToRefs(userStore);
+
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!storedToken.value) {
       next({ name: 'Login' });
     } else {
-      // User is authenticated, allow access to the route
       next();
     }
   } else {
-    // Non-authenticated routes, allow access
     next();
   }
 });
+
 
 export default router;

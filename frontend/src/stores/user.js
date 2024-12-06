@@ -10,7 +10,8 @@ export const useUserStore = defineStore('user', () => {
   // State
   const isLoading = ref(false);
   const user = ref(null);
-  
+  const storedToken = ref(sessionStorage.getItem('token') || null);
+
   const isAuthenticated = computed(() => !!user.value);
 
   // Auth methods
@@ -24,11 +25,9 @@ export const useUserStore = defineStore('user', () => {
     }
   };
   const verifySession = async () => {
-    const storedToken = sessionStorage.getItem('token');
-
-    if (storedToken) {
-      console.log('Stored token found:', storedToken);
-      fetchUserData(storedToken);
+    if (storedToken.value) {
+      console.log('Stored token found:', storedToken.value);
+      fetchUserData(storedToken.value);
     }
   };
 
@@ -88,9 +87,9 @@ export const useUserStore = defineStore('user', () => {
   };
 
   // Lifecycle hooks  
-  onMounted(() => {
-    verifySession();
-  });
+  // onMounted(() => {
+  //   verifySession();
+  // });
 
   return {
     isAuthenticated,
@@ -99,5 +98,7 @@ export const useUserStore = defineStore('user', () => {
     login,
     logout,
     signup,
+    verifySession,
+    storedToken,
   };
 });
