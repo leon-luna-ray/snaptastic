@@ -10,9 +10,7 @@ export const useUserStore = defineStore('user', () => {
   // State
   const isLoading = ref(false);
   const user = ref(null);
-  const storedToken = ref(sessionStorage.getItem('token') || null);
-
-  const isAuthenticated = computed(() => !!user.value);
+  const token = ref(sessionStorage.getItem('token') || null);
 
   // Auth methods
   const setSession = (token, user) => {
@@ -25,9 +23,8 @@ export const useUserStore = defineStore('user', () => {
     }
   };
   const verifySession = async () => {
-    if (storedToken.value) {
-      console.log('Stored token found:', storedToken.value);
-      fetchUserData(storedToken.value);
+    if (token.value) {
+      fetchUserData(token.value);
     }
   };
 
@@ -62,7 +59,6 @@ export const useUserStore = defineStore('user', () => {
 
   const signup = async (data) => {
     try {
-      console.log('try', data.email, data.password);
       const response = await axios.post('/user/signup/', data);
 
       if (response.data.user.id) {
@@ -71,34 +67,27 @@ export const useUserStore = defineStore('user', () => {
       }
     } catch (error) {
       alert(`Error - ${error.response?.data?.email[0]}` || 'An error occurred. Unable to sign up');
+      router.push('/signup');
     }
   };
   const fetchUserData = async (token) => {
     try {
       const response = await axios.get('/user/whoami/');
       if (response.status === 200) {
-        console.log('User data:', response.data);
         user.value = response.data;
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
       setSession(null, null);
     }
   };
 
-  // Lifecycle hooks  
-  // onMounted(() => {
-  //   verifySession();
-  // });
-
   return {
-    isAuthenticated,
     isLoading,
     user,
+    token,
     login,
     logout,
     signup,
     verifySession,
-    storedToken,
   };
 });

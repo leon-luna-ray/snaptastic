@@ -33,10 +33,12 @@ const router = createRouter({
 // todo fix route guard
 router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore();
-  const { storedToken } = storeToRefs(userStore);
+  const { token } = storeToRefs(userStore);
+  
+   userStore.verifySession();
 
   if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (!storedToken.value) {
+    if (!token.value) {
       next({ name: 'Login' });
     } else {
       next();
