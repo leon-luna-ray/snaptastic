@@ -14,4 +14,8 @@ node_modules
 .env.local
 dist/
 
-camera/
+bundle/
+backend/camera/SDK13410/
+backend/photos/
+
+backend/camera/sdk/

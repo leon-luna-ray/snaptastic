@@ -2,8 +2,11 @@ version: '3.8'
 
 services:
 
+  # The backend runs natively on the Mac so it can reach the camera over USB
+  # (Docker on macOS can't). Start this container with `--profile docker-backend`.
   backend:
     build: ./backend
+    profiles: ["docker-backend"]
     ports:
       - 8080:8080
     volumes:
