@@ -17,3 +17,7 @@ app.add_middleware(
 )
 
 # models.Base.metadata.create_all(bind=engine)
+
+@app.get("/api/hello")
+def hello():
+    return {"message": "Hello World"}

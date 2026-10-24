@@ -8,7 +8,8 @@ services:
       - 8080:8080
     volumes:
       - ./backend:/app
-    command: /bin/sh -c ". /app/venv/bin/activate && uvicorn src.main:app --host 0.0.0.0 --port 8080"
+      - /app/venv
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8080 --reload
 
   frontend:
     build: ./frontend

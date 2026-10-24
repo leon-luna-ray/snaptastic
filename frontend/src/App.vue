@@ -1,12 +1,28 @@
 <template>
   <div id="vue-app">
     <h1 class="icons">Snaptastic</h1>
+    <p>{{ message }}</p>
     <!-- <video id="video" ref="videoRef" muted autoplay></video>
     <button @click="enabled = !enabled">
       {{ enabled ? 'Stop' : 'Start' }}
     </button> -->
   </div>
 </template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+
+const message = ref('Loading...')
+
+onMounted(async () => {
+  try {
+    const res = await fetch('http://localhost:8080/api/hello')
+    message.value = (await res.json()).message
+  } catch (e) {
+    message.value = 'Could not reach backend'
+  }
+})
+</script>
 
 <!-- <script setup>
 import { watchEffect, ref, computed, onMounted } from 'vue';
