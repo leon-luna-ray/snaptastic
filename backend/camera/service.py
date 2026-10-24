@@ -21,6 +21,10 @@ class CameraError(Exception):
 class CameraService:
     """Owns the single SDK session with the camera.
 
+    The SDK is initialized once per process and only shut down by shutdown():
+    after XSDK_Exit, a second XSDK_Init in the same process never finds a camera
+    again. connect() and disconnect() just open and close the camera session.
+
     The SDK isn't thread-safe, so every SDK call happens while holding self._lock.
     A background thread polls the camera's image buffer: live view frames are kept
     in memory for streaming, and photos taken with release() are saved to PHOTOS_DIR.
@@ -51,7 +55,7 @@ class CameraService:
                 self._open_session()
             except CameraError as e:
                 self.error = str(e)
-                self._teardown()
+                self._close_session()
                 raise
             self.error = None
             self.connected = True
@@ -65,7 +69,14 @@ class CameraService:
             self._thread.join()
             self._thread = None
         with self._lock:
-            self._teardown()
+            self._close_session()
+
+    def shutdown(self):
+        self.disconnect()
+        with self._lock:
+            if self._control is not None:
+                self._control.exit()
+                self._control = None
 
     def release(self, timeout=10):
         if not self.connected:
@@ -84,7 +95,9 @@ class CameraService:
             raise CameraError("The shutter fired but no photo arrived from the camera")
         return self.last_photo
 
-    def _open_session(self):
+    def _init_sdk(self):
+        if self._control is not None:
+            return
         control = cc.CameraControl()
         if not control.load_library():
             raise CameraError("Could not load the Fujifilm SDK (is backend/camera/bundle in place?)")
@@ -94,6 +107,10 @@ class CameraService:
 
         # Apple silicon Macs need at least 3s between XSDK_Init and XSDK_Detect.
         time.sleep(3)
+
+    def _open_session(self):
+        self._init_sdk()
+        control = self._control
 
         camera_count = c_long(0)
         ip_address = create_string_buffer(b"", 20)
@@ -115,20 +132,24 @@ class CameraService:
         control.set_prop_l(self._handle, cc.API_CODE.API_CODE_SetLiveViewImageQuality.value, 1, cc.SDK_LIVEVIEW_QUALITY_FINE)
         control.set_prop_l(self._handle, cc.API_CODE.API_CODE_SetLiveViewImageSize.value, 1, cc.SDK_LIVEVIEW_SIZE_L)
 
-        # StartLiveView returns BUSY unless the image buffer is empty.
+        # StartLiveView returns BUSY unless the image buffer is empty, and the X-T3
+        # also stays BUSY for about a second after switching to PC priority.
         self._drain_buffer()
-        if control.set_prop(self._handle, cc.API_CODE.API_CODE_StartLiveView.value, 0) != cc.XSDK_COMPLETE:
+        for _ in range(5):
+            if control.set_prop(self._handle, cc.API_CODE.API_CODE_StartLiveView.value, 0) == cc.XSDK_COMPLETE:
+                break
+            if control.err_code.value != cc.ERR_CODE.XSDK_ERRCODE_BUSY.value:
+                raise CameraError(self._sdk_error("Starting live view"))
+            time.sleep(1)
+        else:
             raise CameraError(self._sdk_error("Starting live view"))
 
-    def _teardown(self):
-        if self._control is not None:
-            if self._handle.value != 0:
-                self._control.set_prop(self._handle, cc.API_CODE.API_CODE_StopLiveView.value, 0)
-                self._drain_buffer()
-                self._control.close(self._handle)
-                self._handle = c_longlong(0)
-            self._control.exit()
-            self._control = None
+    def _close_session(self):
+        if self._control is not None and self._handle.value != 0:
+            self._control.set_prop(self._handle, cc.API_CODE.API_CODE_StopLiveView.value, 0)
+            self._drain_buffer()
+            self._control.close(self._handle)
+            self._handle = c_longlong(0)
         self.connected = False
         self.latest_frame = None
 

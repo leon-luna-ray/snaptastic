@@ -18,8 +18,8 @@ from camera.service import PHOTOS_DIR, CameraError, camera
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
-    # Release the camera session when the server stops.
-    camera.disconnect()
+    # Release the camera session and the SDK when the server stops.
+    camera.shutdown()
 
 
 app = FastAPI(lifespan=lifespan)
