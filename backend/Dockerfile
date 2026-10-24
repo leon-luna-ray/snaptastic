@@ -13,8 +13,9 @@ COPY requirements.txt ./
 COPY ./src/ ./src/
 
 RUN virtualenv venv
-RUN . venv/bin/activate && pip install -r requirements.txt
+RUN /app/venv/bin/pip install -r requirements.txt
+RUN /app/venv/bin/pip install uvicorn
 
 EXPOSE 8080
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["/app/venv/bin/uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]

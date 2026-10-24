@@ -1,10 +1,10 @@
-import models
+# import models
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from database import SessionLocal, engine
+# from database import SessionLocal, engine
 from typing import Annotated
-from sqlalchemy.orm import Session
+# from sqlalchemy.orm import Session
 
 app = FastAPI()
 
@@ -16,4 +16,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-models.Base.metadata.create_all(bind=engine)
+# models.Base.metadata.create_all(bind=engine)
