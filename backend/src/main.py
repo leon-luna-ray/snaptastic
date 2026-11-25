@@ -1,29 +1,67 @@
-# import models
-
 import asyncio
 import os
+import threading
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
-# from database import SessionLocal, engine
-from typing import Annotated
-# from sqlalchemy.orm import Session
 
-from camera.service import PHOTOS_DIR, CameraError, camera
+from camera import PHOTOS_DIR, CameraError, create_camera
+
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FRONTEND_DIST = os.path.join(BACKEND_DIR, "..", "frontend", "dist")
+# How often the watchdog retries when the camera isn't connected.
+RECONNECT_SECONDS = 5
+
+camera = create_camera()
+
+
+class Watchdog:
+    """Keeps the camera connected without anyone pressing a button: connects at
+    startup and reconnects after the camera is unplugged or drops out.
+    A manual disconnect pauses it until the next manual connect."""
+
+    def __init__(self):
+        self.enabled = True
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def start(self):
+        self._thread.start()
+
+    def stop(self):
+        self._stop.set()
+        self._thread.join(timeout=RECONNECT_SECONDS + 15)
+
+    def _run(self):
+        while not self._stop.is_set():
+            if self.enabled and not camera.connected:
+                try:
+                    camera.connect()
+                except CameraError:
+                    pass  # camera.error holds the message for /api/camera/status
+                except Exception as e:  # never let the watchdog thread die
+                    camera.error = f"Camera error: {e}"
+            self._stop.wait(RECONNECT_SECONDS)
+
+
+watchdog = Watchdog()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    watchdog.start()
     yield
-    # Release the camera session and the SDK when the server stops.
+    # Release the camera session (and the Fujifilm SDK) when the server stops.
+    watchdog.stop()
     camera.shutdown()
 
 
 app = FastAPI(lifespan=lifespan)
 
+# Only needed for the Vite dev server; the kiosk loads the UI from this server.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -35,11 +73,10 @@ app.add_middleware(
 os.makedirs(PHOTOS_DIR, exist_ok=True)
 app.mount("/photos", StaticFiles(directory=PHOTOS_DIR), name="photos")
 
-# models.Base.metadata.create_all(bind=engine)
 
-@app.get("/api/hello")
-def hello():
-    return {"message": "Hello World"}
+@app.get("/api/health")
+def health():
+    return {"ok": True, "camera": camera.status()}
 
 
 @app.get("/api/camera/status")
@@ -51,6 +88,7 @@ def camera_status():
 # camera calls below don't block the server.
 @app.post("/api/camera/connect")
 def camera_connect():
+    watchdog.enabled = True
     try:
         camera.connect()
     except CameraError as e:
@@ -60,6 +98,7 @@ def camera_connect():
 
 @app.post("/api/camera/disconnect")
 def camera_disconnect():
+    watchdog.enabled = False
     camera.disconnect()
     return camera.status()
 
@@ -96,3 +135,9 @@ async def camera_live():
             await asyncio.sleep(0.03)
 
     return StreamingResponse(frames(), media_type="multipart/x-mixed-replace; boundary=frame")
+
+
+# The built booth UI (`pnpm build` in frontend/). Mounted last so /api and
+# /photos win. Skipped when there's no build, e.g. while using the Vite dev server.
+if os.path.isdir(FRONTEND_DIST):
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")

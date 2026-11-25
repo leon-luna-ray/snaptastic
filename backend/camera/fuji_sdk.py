@@ -251,7 +251,7 @@ class FujiSDK:
         except OSError as e:
             del self.m_module
             self.m_module = None
-            self.err = FUJI_SDK_ERR_LOADSDK
+            self.m_err = FUJI_SDK_ERR_LOADSDK
     
     
     def get_error(self):

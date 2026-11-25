@@ -1,149 +1,166 @@
 <template>
-  <div id="vue-app">
-    <h1 class="icons">Snaptastic</h1>
-    <p>{{ statusText }}</p>
-    <button @click="connected ? disconnect() : connect()" :disabled="busy">
-      {{ connected ? 'Disconnect' : 'Connect camera' }}
-    </button>
-    <img v-if="connected" class="live" :src="liveUrl" alt="Live view" />
-    <button v-if="connected" class="shutter" @click="shoot" :disabled="shooting">
-      {{ shooting ? 'Taking photo...' : 'Shutter' }}
-    </button>
-    <img v-if="lastPhoto" class="photo" :src="`${API}/photos/${lastPhoto}`" alt="Last photo" />
-    <!-- <video id="video" ref="videoRef" muted autoplay></video>
-    <button @click="enabled = !enabled">
-      {{ enabled ? 'Stop' : 'Start' }}
-    </button> -->
-  </div>
+  <main class="booth">
+    <!-- Live view stays mounted across start/countdown so the stream never restarts mid-shot. -->
+    <img
+      v-if="camera.connected"
+      class="live"
+      :class="{ mirrored: config.mirrorPreview }"
+      :src="streamUrl"
+      alt=""
+    />
+
+    <AttractScreen v-if="step === 'attract'" :ready="camera.connected" @start="start" />
+
+    <CountdownOverlay
+      v-else-if="step === 'countdown'"
+      :seconds="config.countdownSeconds"
+      @done="capture"
+    />
+
+    <ReviewScreen
+      v-else-if="step === 'review'"
+      :photo="photo"
+      :idle-seconds="config.reviewIdleSeconds"
+      @retake="start"
+      @done="reset"
+    />
+
+    <div v-if="flash" class="flash" @animationend="flash = false"></div>
+    <div v-if="step === 'capturing'" class="saving">Saving…</div>
+
+    <div v-if="!camera.connected && camera.error" class="banner">
+      {{ camera.error }} · retrying…
+    </div>
+    <div v-if="message" class="banner">{{ message }}</div>
+  </main>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
+import config from './config'
+import { getStatus, takePhoto, liveUrl } from './api'
+import AttractScreen from './components/AttractScreen.vue'
+import CountdownOverlay from './components/CountdownOverlay.vue'
+import ReviewScreen from './components/ReviewScreen.vue'
 
-const API = 'http://localhost:8080'
+// attract -> countdown -> capturing -> review -> (retake: countdown | done: attract)
+const step = ref('attract')
+const photo = ref(null)
+const flash = ref(false)
+const message = ref('')
+const camera = reactive({ connected: false, error: null })
+const streamUrl = ref('')
 
-const connected = ref(false)
-const busy = ref(false)
-const shooting = ref(false)
-const statusText = ref('Checking camera...')
-const liveUrl = ref('')
-const lastPhoto = ref(null)
-
-async function call(method, path) {
-  const res = await fetch(API + path, { method })
-  const body = await res.json()
-  if (!res.ok) throw new Error(body.detail)
-  return body
+function start() {
+  if (!camera.connected) return
+  step.value = 'countdown'
 }
 
-function applyStatus(s) {
-  connected.value = s.connected
-  statusText.value = s.connected ? 'Camera connected' : (s.error || 'Camera not connected')
-  if (s.last_photo) lastPhoto.value = s.last_photo
-  // A fresh URL makes the browser open a new stream after reconnecting.
-  if (s.connected) liveUrl.value = `${API}/api/camera/live?t=${Date.now()}`
-}
-
-async function connect() {
-  busy.value = true
-  statusText.value = 'Connecting (takes a few seconds)...'
+async function capture() {
+  step.value = 'capturing'
+  flash.value = true
   try {
-    applyStatus(await call('POST', '/api/camera/connect'))
+    photo.value = await takePhoto()
+    step.value = 'review'
   } catch (e) {
-    statusText.value = e.message
-  } finally {
-    busy.value = false
+    showMessage(`Couldn't take the photo: ${e.message}`)
+    reset()
   }
 }
 
-async function disconnect() {
-  busy.value = true
-  try {
-    applyStatus(await call('POST', '/api/camera/disconnect'))
-  } catch (e) {
-    statusText.value = e.message
-  } finally {
-    busy.value = false
-  }
+function reset() {
+  step.value = 'attract'
+  photo.value = null
 }
 
-async function shoot() {
-  shooting.value = true
-  try {
-    lastPhoto.value = (await call('POST', '/api/camera/release')).photo
-  } catch (e) {
-    statusText.value = e.message
-  } finally {
-    shooting.value = false
-  }
+let messageTimer
+function showMessage(text) {
+  message.value = text
+  clearTimeout(messageTimer)
+  messageTimer = setTimeout(() => (message.value = ''), 5000)
 }
 
-onMounted(async () => {
+// The backend keeps the camera connected on its own; the UI just follows along.
+async function refreshStatus() {
   try {
-    applyStatus(await call('GET', '/api/camera/status'))
-  } catch (e) {
-    statusText.value = 'Could not reach backend'
+    const s = await getStatus()
+    if (s.connected && !camera.connected) streamUrl.value = liveUrl()
+    camera.connected = s.connected
+    camera.error = s.error
+  } catch {
+    camera.connected = false
+    camera.error = 'Booth is starting up'
   }
+  if (!camera.connected && step.value === 'countdown') reset()
+}
+
+let pollTimer
+onMounted(() => {
+  refreshStatus()
+  pollTimer = setInterval(refreshStatus, config.statusPollMs)
+})
+onBeforeUnmount(() => {
+  clearInterval(pollTimer)
+  clearTimeout(messageTimer)
 })
 </script>
 
-<style>
-#vue-app {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  row-gap: 1rem;
-}
-
-.live {
+<style scoped>
+.booth {
+  position: relative;
   width: 100%;
-  max-width: 960px;
+  height: 100%;
+  overflow: hidden;
   background: #000;
 }
 
-.shutter {
-  font-size: 1.5rem;
-  padding: 1rem 3rem;
+.live {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.photo {
-  max-width: 320px;
+.live.mirrored {
+  transform: scaleX(-1);
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  pointer-events: none;
+  animation: flash 0.6s ease-out forwards;
+}
+
+@keyframes flash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.saving {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.banner {
+  position: absolute;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 3rem);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  background: var(--danger);
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
 }
 </style>
-
-<!-- <script setup>
-import { watchEffect, ref, computed, onMounted } from 'vue';
-import { useDevicesList, useUserMedia } from '@vueuse/core'
-
-const {
-  videoInputs: cameras,
-} = useDevicesList({
-  requestPermissions: true,
-})
-
-const videoRef = ref(null);
-
-const currentCamera = computed(() => cameras.value[0]?.deviceId)
-
-const { stream, enabled } = useUserMedia({
-  constraints: {
-    video: { deviceId: currentCamera },
-  }
-})
-
-onMounted(() => {
-  watchEffect(() => {
-    if (videoRef.value && stream.value && stream.value.active) {
-      videoRef.value.srcObject = stream.value;
-    }
-  })
-})
-</script>
-
-<style>
-#vue-app {
-  display: flex;
-  flex-direction: column;
-  row-gap: 1rem;
-}
-</style> -->

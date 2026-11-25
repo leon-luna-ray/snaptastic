@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
 
   # The backend runs natively on the Mac so it can reach the camera over USB
@@ -21,6 +19,11 @@ services:
       - '/app/node_modules'
     ports:
       - 5173:5173
+    environment:
+      # Vite proxies /api and /photos here: the backend running on the host.
+      SNAPTASTIC_BACKEND: http://host.docker.internal:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   db:
     image: postgres

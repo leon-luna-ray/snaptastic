@@ -1,12 +1,10 @@
-import datetime
 import os
 import threading
 import time
 from ctypes import c_long, c_longlong, create_string_buffer
 
 from . import camera_control as cc
-
-PHOTOS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "photos")
+from .base import PHOTOS_DIR, CameraBackend, CameraError, new_photo_name
 
 PHOTO_EXTENSIONS = {
     cc.XSDK_IMAGEFORMAT_JPEG: ".JPG",
@@ -14,11 +12,7 @@ PHOTO_EXTENSIONS = {
 }
 
 
-class CameraError(Exception):
-    pass
-
-
-class CameraService:
+class FujiCamera(CameraBackend):
     """Owns the single SDK session with the camera.
 
     The SDK is initialized once per process and only shut down by shutdown():
@@ -30,21 +24,16 @@ class CameraService:
     in memory for streaming, and photos taken with release() are saved to PHOTOS_DIR.
     """
 
+    name = "fuji"
+
     def __init__(self):
+        super().__init__()
         self._control = None
         self._handle = c_longlong(0)
         self._lock = threading.Lock()
         self._thread = None
         self._running = False
         self._photo_saved = threading.Event()
-        self.connected = False
-        self.error = None
-        self.latest_frame = None
-        self.frame_id = 0
-        self.last_photo = None
-
-    def status(self):
-        return {"connected": self.connected, "error": self.error, "last_photo": self.last_photo}
 
     def connect(self):
         if self.connected:
@@ -100,7 +89,7 @@ class CameraService:
             return
         control = cc.CameraControl()
         if not control.load_library():
-            raise CameraError("Could not load the Fujifilm SDK (is backend/camera/bundle in place?)")
+            raise CameraError("Could not load the Fujifilm SDK (are the SDK files in backend/camera/dll, bundle or so?)")
         if control.init() != cc.XSDK_COMPLETE:
             raise CameraError("Could not initialize the Fujifilm SDK")
         self._control = control
@@ -203,7 +192,7 @@ class CameraService:
 
     def _save_photo(self, data, extension):
         os.makedirs(PHOTOS_DIR, exist_ok=True)
-        name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3] + extension
+        name = new_photo_name(extension)
         with open(os.path.join(PHOTOS_DIR, name), "wb") as f:
             f.write(data)
         self.last_photo = name
@@ -216,6 +205,3 @@ class CameraService:
         except ValueError:
             name = hex(code)
         return f"{action} failed ({name})"
-
-
-camera = CameraService()
